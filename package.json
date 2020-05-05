@@ -1,0 +1,16 @@
+{
+  "name": "try-cog",
+  "version": "0.0.1",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "start": "http-server -o ./sample -c-1"
+  },
+  "devDependencies": {},
+  "author": "yonda-yonda",
+  "license": "MIT",
+  "dependencies": {
+    "geotiff.js": "^1.0.1",
+    "http-server": "^0.12.3"
+  }
+}

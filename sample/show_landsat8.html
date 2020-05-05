@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoTiff sample</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+
+        #images {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        dl {
+            margin-right: 20px;
+        }
+
+        dd {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="images"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+    </script>
+    <script>
+        (async function () {
+            const tiff = tiff_b = await GeoTIFF.fromUrl(
+                "{LC08_L1TP_139045_20170304_20170316_01_T1_B2_cog.tif}");
+            const tiff_g = await GeoTIFF.fromUrl("{LC08_L1TP_139045_20170304_20170316_01_T1_B3_cog.tif}");
+            const tiff_r = await GeoTIFF.fromUrl("{LC08_L1TP_139045_20170304_20170316_01_T1_B4_cog.tif}");
+
+            const subfileNumber = await tiff.getImageCount();
+
+            const readImageData = async (images, options = {}) => {
+                const rasters = rasters_r = await images[0].readRasters(options);
+                const rasters_g = await images[1].readRasters(options);
+                const rasters_b = await images[2].readRasters(options);
+
+                const {
+                    width,
+                    height
+                } = rasters;
+                const arr = [];
+                let max = 255;
+                let min = 0;
+                for (let i = 0; i < rasters[0].length; i++) {
+                    arr[i * 4] = rasters_r[0][i];
+                    arr[i * 4 + 1] = rasters_g[0][i];
+                    arr[i * 4 +
+                        2] = rasters_b[0][i];
+                    arr[i * 4 + 3] = Infinity;
+                    min = Math.min(min, rasters_r[0][i], rasters_g[0][i],
+                        rasters_b[0][i]);
+                    max = Math.max(max, rasters_r[0][i], rasters_g[0][i], rasters_b[0][i]);
+                }
+                for (let i = 0; i <
+                    arr.length; i++) {
+                    if (arr[i] === Infinity) {
+                        arr[i] = 255;
+                    } else {
+                        arr[i] = parseInt(255 * ((arr[i] - min) / (max -
+                            min)), 10);
+                    }
+                }
+                const data = new Uint8ClampedArray(arr);
+                return new ImageData(data, width, height);
+            }
+
+            const showImage = async (subfileIndex) => {
+                const image = image_b = await tiff_b.getImage(subfileIndex);
+                const image_g = await tiff_g.getImage(subfileIndex);
+                const image_r = await tiff_r.getImage(subfileIndex);
+                const maxSize = 512;
+                const width = maxSize < image.getWidth() ? maxSize : image.getWidth();
+                const height = maxSize <
+                    image.getHeight() ? maxSize : image.getHeight();
+                let startX = parseInt((image.getWidth() - width) /
+                    2);
+                if (startX < 0) startX = 0;
+                let endX = parseInt((image.getWidth() + width) / 2);
+                if (endX >
+                    image.getWidth()) endX = image.getWidth();
+
+                let startY = parseInt((image.getHeight() - height) / 2);
+                if (startY < 0) startY = 0;
+                let endY = parseInt((image.getHeight() + height) / 2);
+                if (endY >
+                    image.getHeight()) endY = image.getHeight();
+
+                const data = await readImageData([image_r, image_g, image_b], {
+                    window: [startX, startY, endX, endY]
+                });
+
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = width;
+                canvas.height = height;
+                ctx.putImageData(data, 0, 0);
+                const dl = document.createElement("dl");
+                const dt = document.createElement("dt");
+                dt.innerHTML = "index: " + subfileIndex;
+                const dd = document.createElement("dd");
+                dd.appendChild(canvas);
+                dl.appendChild(dt);
+                dl.appendChild(dd);
+
+                document.getElementById("images").appendChild(dl);
+            }
+
+            for (let i = 0; i < subfileNumber; i++) {
+                await showImage(i)
+            }
+        })()
+    </script>
+</body>
+
+</html>

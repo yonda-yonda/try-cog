@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoTiff sample</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            width: 100%;
+        }
+
+        #images {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        dl {
+            margin-right: 20px;
+        }
+
+        dd {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="images"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+    </script>
+    <script>
+        (async function () {
+            const filepath = "{SP27GTIF_cog.tiff}"
+            const tiff = await GeoTIFF.fromUrl(filepath);
+            const subfileNumber = await tiff.getImageCount();
+
+            const readImageData = async (image, options = {}) => {
+                const rasters = await image.readRasters(options);
+
+                const {
+                    width,
+                    height
+                } = rasters;
+                const band = image.getSamplesPerPixel();
+                const arr = [];
+
+                for (let i = 0; i < rasters[0].length; i++) {
+                    if (band > 1) {
+                        arr[i * 4] = rasters[0][i];
+                        arr[i * 4 + 1] = rasters[1][i];
+                        arr[i * 4 + 2] = rasters[2][i];
+                        arr[i * 4 + 3] = 255;
+                    } else {
+                        arr[i * 4] = rasters[0][i];
+                        arr[i * 4 + 1] = rasters[0][i];
+                        arr[i * 4 + 2] = rasters[0][i];
+                        arr[i * 4 + 3] = 255;
+                    }
+                }
+                const data = new Uint8ClampedArray(arr);
+                return new ImageData(data, width, height);
+            }
+
+            const showImage = async (subfileIndex) => {
+                const image = await tiff.getImage(subfileIndex);
+                const maxSize = 1024;
+                const width = maxSize < image.getWidth() ? maxSize : image.getWidth();
+                const height = maxSize <
+                    image.getHeight() ? maxSize : image.getHeight();
+                let startX = parseInt((image.getWidth() - width) / 2);
+                if (startX < 0) startX = 0;
+                let endX = parseInt((image.getWidth() + width) / 2);
+                if (endX > image.getWidth())
+                    endX = image.getWidth();
+
+                let startY = parseInt((image.getHeight() - height) / 2);
+                if (startY < 0) startY = 0;
+                let endY = parseInt((image.getHeight() + height) / 2);
+                if (endY >
+                    image.getHeight()) endY = image.getHeight();
+                const data = await readImageData(image, {
+                    window: [startX, startY, endX, endY]
+                });
+
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = width;
+                canvas.height = height;
+                ctx.putImageData(data, 0, 0);
+                const dl = document.createElement("dl");
+                const dt = document.createElement("dt");
+                dt.innerHTML = "index: " + subfileIndex;
+                const dd = document.createElement("dd");
+                dd.appendChild(canvas);
+                dl.appendChild(dt);
+                dl.appendChild(dd);
+
+                document.getElementById("images").appendChild(dl);
+            }
+
+            for (let i = 0; i < subfileNumber; i++) {
+                await showImage(i)
+            }
+        })()
+    </script>
+</body>
+
+</html>

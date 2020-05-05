@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoTiff sample</title>
+</head>
+
+<body>
+    Show Console.
+
+    <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+    </script>
+    <script>
+        (async function () {
+            const filepath = "{SP27GTIF_cog.tiff}"
+            const tiff = await GeoTIFF.fromUrl(filepath);
+            const pyramidNum = await tiff.getImageCount();
+            console.log(`Pyramid: ${pyramidNum}`, );
+
+            const image = await tiff.getImage(0);
+            console.log(`Bounding box: ${image.getBoundingBox()}`);
+            console.log(`Origin: ${ image.getOrigin()}`);
+            console.log(`Resolution: ${image.getResolution()}`);
+            console.log(`Size: ${image.getWidth()}, ${image.getHeight()}`);
+            console.log(`Tile size: ${image.getTileWidth()}, ${image.getTileHeight()}`);
+            console.log(`Band: ${image.getSamplesPerPixel()}`);
+        })()
+    </script>
+</body>
+
+</html>
