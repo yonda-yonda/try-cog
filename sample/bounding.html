@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GeoTiff sample</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            width: 100%;
+        }
+
+        #info {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        #images>* {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info"></div>
+    <div id="images"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+    </script>
+    <script>
+        (async function () {
+            filepath =
+                "https://s3-us-west-2.amazonaws.com/planet-disaster-data/hurricane-harvey/SkySat_Freeport_s03_20170831T162740Z3.tif"
+            const tiff = await GeoTIFF.fromUrl(filepath);
+
+            const showImage = (tiff, bbox, resX, resY) => {
+                tiff.readRasters({
+                    bbox,
+                    resX,
+                    resY
+                }).then((image) => {
+                    const {
+                        width,
+                        height
+                    } = image;
+
+                    let arr = [];
+                    if (image[0].length === width * height) {
+                        for (let i = 0; i < image[0].length; i++) {
+                            arr[i * 4] = image[0][i];
+                            arr[i * 4 + 1] = image[0][i];
+                            arr[i * 4 + 2] = image[0][i];
+                            arr[i * 4 + 3] = 255;
+                        }
+                    } else {
+                        arr = image[0];
+                    }
+
+                    const data = new ImageData(new Uint8ClampedArray(arr), width, height)
+                    const canvas = document.createElement("canvas");
+                    const ctx = canvas.getContext("2d");
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.putImageData(data, 0, 0);
+
+                    const div = document.createElement("div");
+                    div.innerHTML =
+                        `Bounding box: ${bbox}<br>resX: ${resX}, resY: ${resY}<br>width: ${width}px, height: ${height}px<br>`
+                    div.appendChild(canvas);
+                    document.getElementById("images").appendChild(div);
+                });
+            }
+            const image = await tiff.getImage(0);
+            document.getElementById("info").innerHTML =
+                `all<br>Bounding box: ${image.getBoundingBox()}<br>Resolution: ${image.getResolution()}`
+
+            showImage(tiff, [265000, 3210000, 270000, 3215000], 100, 100)
+            showImage(tiff, [265000, 3210000, 270000, 3215000], 20, 20)
+
+        })()
+    </script>
+</body>
+
+</html>
